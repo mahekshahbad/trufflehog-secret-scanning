@@ -107,7 +107,7 @@ jobs:
             --repo="${{ github.repository }}" \
             --json \
             --no-update \
-            > trufflehog-github-results.json 2>&1 || true
+            > trufflehog-github-results.json || true
       
           echo "GitHub scan completed"
 
