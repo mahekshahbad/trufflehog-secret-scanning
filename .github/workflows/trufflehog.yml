@@ -118,7 +118,7 @@ jobs:
           trufflehog github \
             --repo=https://github.com/${{ github.repository }} \
             --json \
-            --token=${{ github.token }} \
+            --token=${{ secrets.GH_PAT }} \
             > trufflehog-github-results.json || true
       
           echo "GitHub scan completed"
