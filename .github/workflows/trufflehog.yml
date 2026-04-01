@@ -78,6 +78,7 @@ jobs:
         run: |
           echo "Installing TruffleHog..."
           curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
+          echo "$PWD/bin" >> $GITHUB_PATH
       
           # Move binary to a known location
           chmod +x ./bin/trufflehog
@@ -114,7 +115,7 @@ jobs:
         run: |
           echo "Scanning GitHub issues and PR comments..."
       
-          ./bin/trufflehog github \
+          trufflehog github \
             --repo=https://github.com/${{ github.repository }} \
             --json \
             --token=${{ github.token }} \
