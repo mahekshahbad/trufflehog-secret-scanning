@@ -78,7 +78,13 @@ jobs:
         run: |
           echo "Installing TruffleHog..."
           curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
-          echo "$HOME/.trufflehog/bin" >> $GITHUB_PATH
+      
+          # Move binary to a known location
+          chmod +x ./bin/trufflehog
+          sudo mv ./bin/trufflehog /usr/local/bin/trufflehog
+      
+          # Verify
+          which trufflehog
           trufflehog --version
 
 
