@@ -6,10 +6,10 @@ on:
 
 jobs:
   call-trufflehog:
-    uses: medica-dev-platform/test-access/.github/workflows/trufflehog.yml@main
+    uses: ./.github/workflows/trufflehog.yml
     with:
       working-directory: "."
       fail-on-secrets: true
       upload-artifact: true
-
+      scan-issues-prs: true
       trufflehog-ignore-patterns: ""
