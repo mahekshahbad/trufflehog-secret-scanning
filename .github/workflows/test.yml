@@ -12,6 +12,8 @@ on:
 jobs:
   call-trufflehog:
     uses: mahekshahbad/trufflehog-secret-scanning/.github/workflows/trufflehog.yml@main
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
     with:
       working-directory: "."
       fail-on-secrets: true
