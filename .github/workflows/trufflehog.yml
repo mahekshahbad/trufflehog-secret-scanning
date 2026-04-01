@@ -111,15 +111,13 @@ jobs:
       # --------------------------
       - name: Scan GitHub Issues & PRs
         if: ${{ inputs.scan-issues-prs }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Scanning GitHub issues and PR comments..."
       
-          trufflehog github \
-            --repo="${{ github.repository }}" \
+          ./bin/trufflehog github \
+            --repo=https://github.com/${{ github.repository }} \
             --json \
-            --no-update \
+            --token=${{ github.token }} \
             > trufflehog-github-results.json || true
       
           echo "GitHub scan completed"
