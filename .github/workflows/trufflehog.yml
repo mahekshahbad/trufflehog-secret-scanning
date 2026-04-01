@@ -74,6 +74,13 @@ jobs:
       
           echo "TRUFFLEHOG_IGNORE=$TRUFFLEHOG_IGNORE" >> $GITHUB_ENV
 
+      - name: Install TruffleHog
+        run: |
+          echo "Installing TruffleHog..."
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
+          echo "$HOME/.trufflehog/bin" >> $GITHUB_PATH
+          trufflehog --version
+
 
       # -------------------------
       # 3. Run TruffleHog Scan
