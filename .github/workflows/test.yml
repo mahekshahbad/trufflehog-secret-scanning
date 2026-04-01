@@ -6,7 +6,7 @@ on:
 
 jobs:
   call-trufflehog:
-    uses: ./.github/workflows/trufflehog.yml
+    uses: mahekshahbad/trufflehog-secret-scanning/.github/workflows/trufflehog.yml@main
     with:
       working-directory: "."
       fail-on-secrets: true
