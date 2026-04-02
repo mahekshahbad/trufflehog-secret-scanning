@@ -1,3 +1,46 @@
+{"level":"info-0","ts":"2026-04-02T08:22:44-05:00","logger":"trufflehog","msg":"running source","source_manager_worker_id":"9LIlb","with_units":true}
+{"level":"info-0","ts":"2026-04-02T08:22:44-05:00","logger":"trufflehog","msg":"finished scanning","chunks":4,"bytes":6743,"verified_secrets":0,"unverified_secrets":0,"scan_duration":"4.254525ms","trufflehog_version":"3.93.8","verification_caching":{"Hits":0,"Misses":0,"HitsWasted":0,"AttemptsSaved":0,"VerificationTimeSpentMS":0}}
+2026/04/02 13:22:45 [updater parent] run
+2026/04/02 13:22:45 [updater parent] checking for updates...
+2026/04/02 13:22:46 [updater parent] failed to get latest version: already up to date
+2026/04/02 13:22:46 [updater parent] starting /usr/bin/trufflehog
+2026/04/02 13:22:47 [updater parent] checking for updates...
+2026/04/02 13:22:47 [updater child#1] run
+2026/04/02 13:22:47 [updater child#1] start program
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"trufflehog 3.94.2"}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"starting scanner workers","count":4}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"starting detector workers","count":32}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"starting verificationOverlap workers","count":4}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"starting notifier workers","count":4}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"Creating API client","url":"https://api.github.com"}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"Creating GraphQL client","url":"https://api.github.com/graphql"}
+{"level":"info-0","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"running source","source_manager_worker_id":"ZiBYk","with_units":true}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"enumerating source","source_manager_worker_id":"ZiBYk"}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"Caching repository info","source_manager_worker_id":"ZiBYk"}
+{"level":"info-1","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"Enumerating with token","source_manager_worker_id":"ZiBYk"}
+{"level":"info-2","ts":"2026-04-02T13:22:47Z","logger":"trufflehog","msg":"attempting to clone repo","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git","repo_name":"test-access"}
+{"level":"info-1","ts":"2026-04-02T13:22:48Z","logger":"trufflehog","msg":"Using explicit repositories","source_manager_worker_id":"ZiBYk","count":1}
+{"level":"info-0","ts":"2026-04-02T13:22:48Z","logger":"trufflehog","msg":"Completed enumeration","source_manager_worker_id":"ZiBYk","num_repos":1,"num_orgs":0,"num_members":0}
+{"level":"info-1","ts":"2026-04-02T13:22:48Z","logger":"trufflehog","msg":"successfully cloned repo","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git","subcommand":"git clone","repo":"https://github.com/medica-dev-platform/test-access.git","path":"/tmp/trufflehog-19-438246623","args":[],"time_seconds":0.513372414}
+{"level":"info-0","ts":"2026-04-02T13:22:48Z","logger":"trufflehog","msg":"scanning repo","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git"}
+{"level":"info-2","ts":"2026-04-02T13:22:48Z","logger":"trufflehog","msg":"finished parsing git log.","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git","total_log_size":29853}
+{"level":"info-1","ts":"2026-04-02T13:22:48Z","logger":"trufflehog","msg":"scanning git repo complete","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git","path":"/tmp/trufflehog-19-438246623","time_seconds":0,"commits_scanned":144}
+{"level":"info-2","ts":"2026-04-02T13:22:48Z","logger":"trufflehog","msg":"Scanning issues","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git"}
+{"level":"info-2","ts":"2026-04-02T13:22:49Z","logger":"trufflehog","msg":"Scanning pull requests","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git"}
+{"level":"info-2","ts":"2026-04-02T13:22:50Z","logger":"trufflehog","msg":"finished scanning repo","source_manager_worker_id":"ZiBYk","unit_kind":"repo","unit":"https://github.com/medica-dev-platform/test-access.git","repo":"https://github.com/medica-dev-platform/test-access.git","duration_seconds":0.037494346}
+{"level":"info-0","ts":"2026-04-02T13:22:50Z","logger":"trufflehog","msg":"finished scanning","chunks":386,"bytes":66600,"verified_secrets":0,"unverified_secrets":0,"scan_duration":"2.564546297s","trufflehog_version":"3.94.2","verification_caching":{"Hits":2,"Misses":33,"HitsWasted":0,"AttemptsSaved":2,"VerificationTimeSpentMS":3342}}
+2026/04/02 13:22:50 [updater parent] prog exited with 0
+
+
+
+
+
+
+
+
+
+
+
 {"level":"info-0","ts":"2026-04-02T07:10:33-05:00","logger":"trufflehog","msg":"running source","source_manager_worker_id":"Cjq7T","with_units":true}
 {"level":"info-0","ts":"2026-04-02T07:10:33-05:00","logger":"trufflehog","msg":"finished scanning","chunks":4,"bytes":6496,"verified_secrets":0,"unverified_secrets":0,"scan_duration":"4.270352ms","trufflehog_version":"3.93.8","verification_caching":{"Hits":0,"Misses":0,"HitsWasted":0,"AttemptsSaved":0,"VerificationTimeSpentMS":0}}
 {"level":"info-0","ts":"2026-04-02T12:10:36Z","logger":"trufflehog","msg":"running source","source_manager_worker_id":"KLTxW","with_units":true}
