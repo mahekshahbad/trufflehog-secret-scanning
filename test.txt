@@ -1,3 +1,7 @@
+jq -r '
+  "Detector: \(.DetectorName) | Verified: \(.Verified) | File: \(.SourceMetadata.Data.Filesystem.file // "unknown") | Line: \(.SourceMetadata.Data.Filesystem.line // "N/A")"
+' trufflehog-results.json
+
 name: TruffleHog Secret Scan
 
 on:
