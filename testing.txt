@@ -21,15 +21,15 @@ on:
         type: string
         default: ""
       repo_url:
-        description: "GitHub repo URL to scan (e.g. https://github.com/trufflesecurity/test_keys)"
+        description: "GitHub repo URL to scan"
         required: false
         type: string
-        default: "https://github.com/medica-dev-platform/test1"
+        default: ""
       results_filter:
-        description: "Filter results: verified, unknown, unverified, or comma-separated combo"
+        description: "Filter results: verified, unknown, unverified"
         required: false
         type: string
-        default: "verified,unknown,unverified"
+        default: "verified"
 
 jobs:
   trufflehog-scan:
@@ -45,135 +45,118 @@ jobs:
           fetch-depth: 0
 
       # -------------------------
-      # 2. Setup Ignore Rules
+      # 2. Ignore File
       # -------------------------
       - name: Prepare TruffleHog Ignore File
-        id: ignore
         run: |
-          echo "Creating ignore file"
-      
           TRUFFLEHOG_IGNORE="${RUNNER_TEMP}/.trufflehogignore"
-      
-          # Default patterns (safe baseline)
+
           printf "%s\n" \
             ".git/" \
             "node_modules/" \
             ".terraform/" \
-            ".terraform.lock.hcl" \
             "test-results/" \
             "security-reports/" \
             ".*\\.sarif$" \
             ".*\\.json$" \
             > "$TRUFFLEHOG_IGNORE"
-      
-          # Append user-provided patterns
+
           if [ -n "${{ inputs.trufflehog-ignore-patterns }}" ]; then
-            echo "Adding user provided ignore patterns"
             echo "${{ inputs.trufflehog-ignore-patterns }}" >> "$TRUFFLEHOG_IGNORE"
           fi
-      
+
           echo "TRUFFLEHOG_IGNORE=$TRUFFLEHOG_IGNORE" >> $GITHUB_ENV
 
-
       # -------------------------
-      # 3. Run TruffleHog Scan
+      # 3. Filesystem Scan
       # -------------------------
-      - name: Run TruffleHog Scan
-        id: scan
-        working-directory: ${{ inputs.working-directory }}
+      - name: Run TruffleHog Filesystem Scan
         run: |
-          echo "Starting TruffleHog scan..."
+          echo "Running filesystem scan..."
 
           trufflehog filesystem . \
             --json \
             --no-update \
+            --results=${{ inputs.results_filter }} \
             --exclude-paths="$TRUFFLEHOG_IGNORE" \
             > trufflehog-results.json 2>&1 || true
 
-          echo "Scan completed"
-
-      # ---------------------------------------------------------------
-      #    Full GitHub scan including Issues & PR comments
-      #    Uses the `github` scanner which needs a token with repo access.
-      #    Docs: trufflehog github --repo=<url> --issue-comments --pr-comments
-      # ---------------------------------------------------------------
+      # -------------------------
+      # 4. Determine Repo
+      # -------------------------
       - name: Determine repo to scan
         id: repo
         run: |
-          if [ -n "${{ github.event.inputs.repo_url }}" ]; then
-            echo "url=${{ github.event.inputs.repo_url }}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.repo_url }}" ]; then
+            echo "url=${{ inputs.repo_url }}" >> "$GITHUB_OUTPUT"
           else
             echo "url=https://github.com/${{ github.repository }}" >> "$GITHUB_OUTPUT"
           fi
 
-          if [ -n "${{ github.event.inputs.results_filter }}" ]; then
-            echo "filter=${{ github.event.inputs.results_filter }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "filter=verified,unknown" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: TruffleHog - Scan Issues & PR Comments
+      # -------------------------
+      # 5. GitHub Scan (Issues + PRs)
+      # -------------------------
+      - name: Scan GitHub Issues & PR Comments
         run: |
+          echo "Running GitHub scan..."
+
           docker run --rm \
             trufflesecurity/trufflehog:latest \
             github \
               --repo=${{ steps.repo.outputs.url }} \
               --issue-comments \
               --pr-comments \
-              --token=${{ secrets.PAT_TOK }} \
-              --results=${{ steps.repo.outputs.filter }} \
-              --json
-        env:
-          TRUFFLEHOG_TOKEN: ${{ secrets.PAT_TOK }}
+              --token=${{ secrets.PAT_TOKEN }} \
+              --results=${{ inputs.results_filter }} \
+              --json \
+            > trufflehog-github-results.json 2>&1 || true
 
       # -------------------------
-      # 4. Evaluate Results
+      # 6. Merge Results
+      # -------------------------
+      - name: Merge Scan Results
+        run: |
+          echo "Merging results..."
+
+          if [ -f trufflehog-github-results.json ]; then
+            cat trufflehog-results.json trufflehog-github-results.json > combined.json
+            mv combined.json trufflehog-results.json
+          fi
+
+      # -------------------------
+      # 7. Evaluate Results
       # -------------------------
       - name: Evaluate Scan Results
-        id: evaluate
-        working-directory: ${{ inputs.working-directory }}
         run: |
-          echo "Evaluating scan results..."
+          echo "Evaluating results..."
 
           if [ ! -f trufflehog-results.json ]; then
-            echo "❌ Scan output file not found"
+            echo "No results file found"
             exit 1
           fi
 
-          SECRET_COUNT=$(grep -c '"DetectorName"' trufflehog-results.json || echo "0")
+          SECRET_COUNT=$(grep -c '"Verified":true' trufflehog-results.json || echo "0")
           SECRET_COUNT=$(echo "$SECRET_COUNT" | tr -d '[:space:]')
 
-          echo "Secrets detected: $SECRET_COUNT"
-
-          echo "SECRET_COUNT=$SECRET_COUNT" >> $GITHUB_ENV
+          echo "Verified secrets detected: $SECRET_COUNT"
 
           if [ "$SECRET_COUNT" -gt 0 ]; then
-            echo "❌ Secrets found!"
-            echo "---- Detected Secrets ----"
-          
-            jq -r '
-              select(.DetectorName != null) |
-              "Detector: \(.DetectorName) | File: \(.SourceMetadata.Data.Filesystem.file // "unknown") | Line: \(.SourceMetadata.Data.Filesystem.line // "N/A")"
-            ' trufflehog-results.json || true
-          
-            echo "--------------------------"
-          
+            echo "❌ Verified secrets found!"
+
             if [ "${{ inputs.fail-on-secrets }}" = "true" ]; then
               exit 1
             fi
+          else
+            echo "✅ No verified secrets found"
           fi
 
       # -------------------------
-      # 5. Convert to SARIF
+      # 8. Convert to SARIF
       # -------------------------
-      - name: Convert Results to SARIF
+      - name: Convert to SARIF
         if: always()
-        working-directory: ${{ inputs.working-directory }}
         run: |
-          echo "Converting results to SARIF..."
-
           if [ ! -s trufflehog-results.json ]; then
-            echo "No results to convert"
             echo '{"version":"2.1.0","runs":[]}' > trufflehog-results.sarif
             exit 0
           fi
@@ -185,38 +168,24 @@ jobs:
               {
                 "tool": {
                   "driver": {
-                    "name": "TruffleHog",
-                    "informationUri": "https://github.com/trufflesecurity/trufflehog"
+                    "name": "TruffleHog"
                   }
                 },
                 "results": (
-                  map(select(.DetectorName != null)) | map({
+                  map(select(.Verified == true)) | map({
                     "ruleId": .DetectorName,
                     "message": {
-                      "text": ("Potential secret detected: " + .DetectorName)
+                      "text": "Verified secret detected"
                     },
-                    "level": "error",
-                    "locations": [
-                      {
-                        "physicalLocation": {
-                          "artifactLocation": {
-                            "uri": (.SourceMetadata.Data.Filesystem.file // "unknown")
-                          },
-                          "region": {
-                            "startLine": (.SourceMetadata.Data.Filesystem.line // 1)
-                          }
-                        }
-                      }
-                    ]
+                    "level": "error"
                   })
                 )
               }
             ]
-          }
-          ' trufflehog-results.json > trufflehog-results.sarif
+          }' trufflehog-results.json > trufflehog-results.sarif
 
       # -------------------------
-      # 6. Upload Artifact
+      # 9. Upload Artifact
       # -------------------------
       - name: Upload Results
         if: ${{ always() && inputs.upload-artifact }}
@@ -224,31 +193,5 @@ jobs:
         with:
           name: trufflehog-results
           path: |
-            ${{ inputs.working-directory }}/trufflehog-results.json
-            ${{ inputs.working-directory }}/trufflehog-results.sarif
-
-      # -------------------------
-      # 7. PR Comment
-      # -------------------------
-      - name: Comment on PR
-        if: ${{ always() && github.event_name == 'pull_request' }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const secretCount = process.env.SECRET_COUNT || "0";
-
-            let message = "### 🔐 TruffleHog Scan Result\n\n";
-
-            if (secretCount > 0) {
-              message += `❌ ${secretCount} potential secret(s) detected.\n`;
-              message += "Please review workflow logs.\n";
-            } else {
-              message += "✅ No secrets detected.\n";
-            }
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            });
+            trufflehog-results.json
+            trufflehog-results.sarif
