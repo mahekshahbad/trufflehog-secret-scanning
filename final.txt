@@ -4,3 +4,10 @@
 {"level":"info-0","ts":"2026-04-02T12:10:37Z","logger":"trufflehog","msg":"Completed enumeration","source_manager_worker_id":"KLTxW","num_repos":1,"num_orgs":0,"num_members":0}
 {"level":"error","ts":"2026-04-02T12:10:37Z","logger":"trufflehog","msg":"encountered errors during scan","job":1,"source_name":"trufflehog - github","errors":["failed to fetch repository: GET https://api.github.com/repos/medica-dev-platform/test-access: 404 Not Found []"]}
 {"level":"info-0","ts":"2026-04-02T12:10:37Z","logger":"trufflehog","msg":"finished scanning","chunks":0,"bytes":0,"verified_secrets":0,"unverified_secrets":0,"scan_duration":"595.309892ms","trufflehog_version":"3.94.2","verification_caching":{"Hits":0,"Misses":0,"HitsWasted":0,"AttemptsSaved":0,"VerificationTimeSpentMS":0}}
+
+
+
+- name: Debug GitHub Scan Output
+  run: |
+    echo "---- GitHub Scan Output ----"
+    cat trufflehog-github-results.json | head -n 5
