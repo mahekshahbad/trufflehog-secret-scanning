@@ -7,6 +7,16 @@
 
 
 
+- name: Determine repo to scan
+  id: repo
+  run: |
+    if [ -n "${{ inputs.repo_url }}" ]; then
+      CLEAN_REPO=$(echo "${{ inputs.repo_url }}" | sed -E 's#https://github.com/##')
+      echo "url=$CLEAN_REPO" >> "$GITHUB_OUTPUT"
+    else
+      echo "url=${{ github.repository }}" >> "$GITHUB_OUTPUT"
+    fi
+
 - name: Debug GitHub Scan Output
   run: |
     echo "---- GitHub Scan Output ----"
