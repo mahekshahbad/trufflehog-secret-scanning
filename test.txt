@@ -1,3 +1,25 @@
+- name: Create Verified JSON
+  run: |
+    echo "Creating clean verified JSON..."
+
+    if [ ! -s trufflehog-results.json ]; then
+      echo "[]" > verified-secrets.json
+      exit 0
+    fi
+
+    jq '
+      {
+        detector: .DetectorName,
+        verified: .Verified,
+        file: .SourceMetadata.Data.Filesystem.file,
+        line: .SourceMetadata.Data.Filesystem.line
+      }
+    ' trufflehog-results.json > verified-secrets.json
+
+    echo "Verified JSON:"
+    cat verified-secrets.json
+
+
 jq -r '
   "Detector: \(.DetectorName) | Verified: \(.Verified) | File: \(.SourceMetadata.Data.Filesystem.file // "unknown") | Line: \(.SourceMetadata.Data.Filesystem.line // "N/A")"
 ' trufflehog-results.json
