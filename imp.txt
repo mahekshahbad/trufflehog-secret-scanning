@@ -1,0 +1,209 @@
+name: TruffleHog Secret Scan
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: false
+        type: string
+        default: "."
+      fail-on-secrets:
+        required: false
+        type: boolean
+        default: true
+      upload-artifact:
+        required: false
+        type: boolean
+        default: true
+      trufflehog-ignore-patterns:
+        description: "Custom ignore patterns"
+        required: false
+        type: string
+        default: ""
+      repo_url:
+        description: "GitHub repo URL to scan"
+        required: false
+        type: string
+        default: ""
+      results_filter:
+        description: "Filter results: verified, unknown, unverified"
+        required: false
+        type: string
+        default: "verified"
+
+    secrets:
+      PAT_TOKEN:
+        required: true
+
+jobs:
+  trufflehog-scan:
+    runs-on: self-hosted
+
+    steps:
+      # -------------------------
+      # 1. Checkout
+      # -------------------------
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # -------------------------
+      # 2. Ignore File
+      # -------------------------
+      - name: Prepare TruffleHog Ignore File
+        run: |
+          TRUFFLEHOG_IGNORE="${RUNNER_TEMP}/.trufflehogignore"
+
+          printf "%s\n" \
+            ".git/" \
+            "node_modules/" \
+            ".terraform/" \
+            "test-results/" \
+            "security-reports/" \
+            ".*\\.sarif$" \
+            ".*\\.json$" \
+            > "$TRUFFLEHOG_IGNORE"
+
+          if [ -n "${{ inputs.trufflehog-ignore-patterns }}" ]; then
+            echo "${{ inputs.trufflehog-ignore-patterns }}" >> "$TRUFFLEHOG_IGNORE"
+          fi
+
+          echo "TRUFFLEHOG_IGNORE=$TRUFFLEHOG_IGNORE" >> $GITHUB_ENV
+
+      # -------------------------
+      # 3. Filesystem Scan
+      # -------------------------
+      - name: Run TruffleHog Filesystem Scan
+        run: |
+          echo "Running filesystem scan..."
+
+          trufflehog filesystem . \
+            --json \
+            --no-update \
+            --results=${{ inputs.results_filter }} \
+            --exclude-paths="$TRUFFLEHOG_IGNORE" \
+            > trufflehog-results.json 2>&1 || true
+
+      # -------------------------
+      # 4. Determine Repo
+      # -------------------------
+      - name: Determine repo to scan
+        id: repo
+        run: |
+          if [ -n "${{ inputs.repo_url }}" ]; then
+            CLEAN_REPO=$(echo "${{ inputs.repo_url }}" | sed -E 's#https://github.com/##')
+            echo "url=$CLEAN_REPO" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=${{ github.repository }}" >> "$GITHUB_OUTPUT"
+          fi
+  
+      # -------------------------
+      # 5. GitHub Scan (Issues + PRs)
+      # -------------------------
+      - name: Scan GitHub Issues & PR Comments
+        run: |
+          echo "Running GitHub scan..."
+
+          docker run --rm \
+            trufflesecurity/trufflehog:latest \
+            github \
+              --repo=${{ steps.repo.outputs.url }} \
+              --issue-comments \
+              --pr-comments \
+              --token=${{ secrets.PAT_TOKEN }} \
+              --results=${{ inputs.results_filter }} \
+              --debug \
+              --only-verified=false \
+              --json \
+            > trufflehog-github-results.json 2>&1 || true
+
+      - name: Debug GitHub Scan Output
+        run: |
+          echo "---- GitHub Scan Output ----"
+          cat trufflehog-github-results.json | head -n 200
+
+      # -------------------------
+      # 6. Merge Results
+      # -------------------------
+      - name: Merge Scan Results
+        run: |
+          echo "Merging results..."
+
+          if [ -f trufflehog-github-results.json ]; then
+            cat trufflehog-results.json trufflehog-github-results.json > combined.json
+            mv combined.json trufflehog-results.json
+          fi
+
+      # -------------------------
+      # 7. Evaluate Results
+      # -------------------------
+      - name: Evaluate Scan Results
+        run: |
+          echo "Evaluating results..."
+
+          if [ ! -f trufflehog-results.json ]; then
+            echo "No results file found"
+            exit 1
+          fi
+
+          SECRET_COUNT=$(grep -c '"Verified":true' trufflehog-results.json || echo "0")
+          SECRET_COUNT=$(echo "$SECRET_COUNT" | tr -d '[:space:]')
+
+          echo "Verified secrets detected: $SECRET_COUNT"
+
+          if [ "$SECRET_COUNT" -gt 0 ]; then
+            echo "❌ Verified secrets found!"
+
+            if [ "${{ inputs.fail-on-secrets }}" = "true" ]; then
+              exit 1
+            fi
+          else
+            echo "✅ No verified secrets found"
+          fi
+
+      # -------------------------
+      # 8. Convert to SARIF
+      # -------------------------
+      - name: Convert to SARIF
+        if: always()
+        run: |
+          if [ ! -s trufflehog-results.json ]; then
+            echo '{"version":"2.1.0","runs":[]}' > trufflehog-results.sarif
+            exit 0
+          fi
+
+          jq -s '
+          {
+            "version": "2.1.0",
+            "runs": [
+              {
+                "tool": {
+                  "driver": {
+                    "name": "TruffleHog"
+                  }
+                },
+                "results": (
+                  map(select(.Verified == true)) | map({
+                    "ruleId": .DetectorName,
+                    "message": {
+                      "text": "Verified secret detected"
+                    },
+                    "level": "error"
+                  })
+                )
+              }
+            ]
+          }' trufflehog-results.json > trufflehog-results.sarif
+
+      # -------------------------
+      # 9. Upload Artifact
+      # -------------------------
+      - name: Upload Results
+        if: ${{ always() && inputs.upload-artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trufflehog-results
+          path: |
+            trufflehog-results.json
+            trufflehog-results.sarif
