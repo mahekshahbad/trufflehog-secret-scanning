@@ -1,3 +1,13 @@
+with:
+      working-directory: "."
+      fail-on-secrets: true
+      upload-artifact: true
+      repo_url: ""
+      results_filter: "verified"
+    secrets:
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+
 name: TruffleHog Secret Scan
 
 on:
