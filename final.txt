@@ -107,7 +107,7 @@ jobs:
               --repo=${{ steps.repo.outputs.url }} \
               --issue-comments \
               --pr-comments \
-              --token=${{ secrets.PAT_TOK }} \
+              --token=${{ secrets.PAT_TOKEN }} \
               --results=${{ inputs.results_filter }} \
               --json \
             > trufflehog-github-results.json 2>&1 || true
